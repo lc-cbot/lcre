@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LCRE (LimaCharlie Reverse Engineering) is a CLI tool for static binary analysis and forensics automation. It provides fast triage via native Go parsing for PE/ELF/Mach-O binaries and deep analysis via Ghidra headless integration. The tool is designed for AI assistant integration with machine-readable output formats.
+LCRE (LimaCharlie Reverse Engineering) is a CLI tool for static binary analysis and forensics automation. It provides fast triage via native Go parsing for PE/ELF/Mach-O binaries, deep analysis via Ghidra headless integration, and enrichment from external analysis tools (capa, diec, floss, etc.). The tool is designed for AI assistant integration with machine-readable output formats.
 
 ## Build and Test Commands
 
