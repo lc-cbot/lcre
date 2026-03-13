@@ -28,10 +28,10 @@ type flossStrings struct {
 }
 
 type flossString struct {
-	String   string `json:"string"`
-	Offset   uint64 `json:"offset"`
-	Encoding string `json:"encoding"`
-	Function string `json:"function,omitempty"`
+	String   string          `json:"string"`
+	Offset   uint64          `json:"offset"`
+	Encoding string          `json:"encoding"`
+	Function json.RawMessage `json:"function,omitempty"`
 }
 
 func (p *FLOSSParser) Parse(data []byte) (*Result, error) {

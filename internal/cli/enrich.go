@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -8,9 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/refractionPOINT/lcre/internal/cache"
 	"github.com/refractionPOINT/lcre/internal/enrichment"
-	_ "github.com/refractionPOINT/lcre/internal/enrichment" // register parsers
 	"github.com/refractionPOINT/lcre/internal/model"
 )
 
@@ -60,19 +59,15 @@ func runEnrich(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("input file not found: %s", enrichInput)
 	}
 
-	// Ensure the binary has been analyzed first
-	mgr, err := cache.NewManager()
-	if err != nil {
-		return err
-	}
+	// Ensure the binary has been analyzed and cached (auto-analyzes if needed)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	exists, err := mgr.Exists(binaryPath)
+	_, db, _, err := ensureAnalyzed(ctx, binaryPath, false)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return fmt.Errorf("binary not yet analyzed. Run 'lcre analyze %s' first", binaryPath)
-	}
+	defer db.Close()
 
 	// Parse tool output
 	toolName := strings.ToLower(enrichTool)
@@ -89,13 +84,6 @@ func runEnrich(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse tool output: %w", err)
 	}
-
-	// Open cache and store results
-	db, err := mgr.Open(binaryPath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
 
 	// Clear previous enrichment for this tool
 	if err := db.ClearEnrichment(toolName); err != nil {

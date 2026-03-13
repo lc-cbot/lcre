@@ -4,6 +4,7 @@
 package enrichment
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -66,15 +67,17 @@ func ParseToolOutput(tool string, inputPath string) (*Result, error) {
 
 	parser := GetParser(tool)
 	if parser != nil {
-		// Dedicated parsers expect JSON
-		if !json.Valid(data) {
+		// Dedicated parsers expect JSON. Strip any non-JSON prefix
+		// (e.g., warning lines from tools like diec that mix text with JSON on stdout).
+		jsonData := extractJSON(data)
+		if jsonData == nil {
 			return nil, fmt.Errorf("%s parser requires JSON input", tool)
 		}
-		result, err := parser.Parse(data)
+		result, err := parser.Parse(jsonData)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s output: %w", tool, err)
 		}
-		result.RawJSON = string(data)
+		result.RawJSON = string(jsonData)
 		return result, nil
 	}
 
@@ -82,4 +85,22 @@ func ParseToolOutput(tool string, inputPath string) (*Result, error) {
 	return &Result{
 		RawJSON: string(data),
 	}, nil
+}
+
+// extractJSON finds the first valid JSON object or array in data,
+// skipping any non-JSON prefix (e.g., warning lines from CLI tools).
+func extractJSON(data []byte) []byte {
+	if json.Valid(data) {
+		return data
+	}
+	// Look for the first '{' or '[' that starts valid JSON
+	for _, opener := range []byte{'{', '['} {
+		if idx := bytes.IndexByte(data, opener); idx > 0 {
+			candidate := data[idx:]
+			if json.Valid(candidate) {
+				return candidate
+			}
+		}
+	}
+	return nil
 }

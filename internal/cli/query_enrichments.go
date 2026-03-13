@@ -60,7 +60,8 @@ func runQueryEnrichments(cmd *cobra.Command, args []string) error {
 
 	switch outputFormat {
 	case "json":
-		return outputJSON2(enrichments)
+		outputJSON(enrichments)
+		return nil
 	default:
 		fmt.Fprintln(os.Stdout, "# Enrichments")
 		fmt.Fprintln(os.Stdout)
@@ -113,15 +114,6 @@ func runQueryEnrichment(cmd *cobra.Command, args []string) error {
 
 	data, _ := json.MarshalIndent(raw, "", "  ")
 	fmt.Fprintln(os.Stdout, string(data))
-	return nil
-}
-
-func outputJSON2(v interface{}) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(data))
 	return nil
 }
 

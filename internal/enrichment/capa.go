@@ -2,6 +2,7 @@ package enrichment
 
 import (
 	"encoding/json"
+	"sort"
 
 	"github.com/refractionPOINT/lcre/internal/model"
 )
@@ -101,6 +102,13 @@ func (p *CapaParser) Parse(data []byte) (*Result, error) {
 
 		caps = append(caps, cap)
 	}
+
+	sort.Slice(caps, func(i, j int) bool {
+		if caps[i].Namespace != caps[j].Namespace {
+			return caps[i].Namespace < caps[j].Namespace
+		}
+		return caps[i].Name < caps[j].Name
+	})
 
 	return &Result{
 		Capabilities: caps,

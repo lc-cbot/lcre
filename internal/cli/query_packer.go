@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -53,8 +52,7 @@ func runQueryPacker(cmd *cobra.Command, args []string) error {
 
 	switch outputFormat {
 	case "json":
-		data, _ := json.MarshalIndent(detections, "", "  ")
-		fmt.Println(string(data))
+		outputJSON(detections)
 		return nil
 	default:
 		fmt.Fprintf(os.Stdout, "# Packer/Compiler Detections (%d)\n\n", len(detections))

@@ -3,6 +3,7 @@ package cache
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 func (d *DB) InsertEnrichment(e model.Enrichment) error {
 	_, err := d.db.Exec(
 		"INSERT OR REPLACE INTO enrichments (tool, timestamp, raw_output) VALUES (?, ?, ?)",
-		e.Tool, e.Timestamp.Format(time.RFC3339), e.RawOutput,
+		strings.ToLower(e.Tool), e.Timestamp.Format(time.RFC3339), e.RawOutput,
 	)
 	return err
 }
@@ -26,7 +27,7 @@ func (d *DB) QueryEnrichments(tool string) ([]model.Enrichment, error) {
 	if tool != "" {
 		rows, err = d.db.Query(
 			"SELECT tool, timestamp, raw_output FROM enrichments WHERE tool = ? ORDER BY tool",
-			tool,
+			strings.ToLower(tool),
 		)
 	} else {
 		rows, err = d.db.Query("SELECT tool, timestamp, raw_output FROM enrichments ORDER BY tool")
@@ -43,7 +44,9 @@ func (d *DB) QueryEnrichments(tool string) ([]model.Enrichment, error) {
 		if err := rows.Scan(&e.Tool, &ts, &e.RawOutput); err != nil {
 			return nil, err
 		}
-		e.Timestamp, _ = time.Parse(time.RFC3339, ts)
+		if parsed, err := time.Parse(time.RFC3339, ts); err == nil {
+			e.Timestamp = parsed
+		}
 		results = append(results, e)
 	}
 	return results, rows.Err()
@@ -66,8 +69,8 @@ func (d *DB) InsertCapabilities(caps []model.Capability) error {
 	defer stmt.Close()
 
 	for _, c := range caps {
-		attackIDs, _ := json.Marshal(c.AttackIDs)
-		mbcIDs, _ := json.Marshal(c.MBCIDs)
+		attackIDs, _ := json.Marshal(emptyIfNil(c.AttackIDs))
+		mbcIDs, _ := json.Marshal(emptyIfNil(c.MBCIDs))
 		_, err := stmt.Exec(c.Name, c.Namespace, c.Author, c.Scope, string(attackIDs), string(mbcIDs))
 		if err != nil {
 			return err
@@ -106,10 +109,14 @@ func (d *DB) QueryCapabilities(namespace, namePattern string) ([]model.Capabilit
 			return nil, err
 		}
 		if attackStr != "" {
-			json.Unmarshal([]byte(attackStr), &c.AttackIDs)
+			if err := json.Unmarshal([]byte(attackStr), &c.AttackIDs); err != nil {
+				return nil, fmt.Errorf("corrupt attack_ids JSON for capability %q: %w", c.Name, err)
+			}
 		}
 		if mbcStr != "" {
-			json.Unmarshal([]byte(mbcStr), &c.MBCIDs)
+			if err := json.Unmarshal([]byte(mbcStr), &c.MBCIDs); err != nil {
+				return nil, fmt.Errorf("corrupt mbc_ids JSON for capability %q: %w", c.Name, err)
+			}
 		}
 		results = append(results, c)
 	}
@@ -169,6 +176,15 @@ func (d *DB) QueryPackerDetections(detType string) ([]model.PackerDetection, err
 		results = append(results, det)
 	}
 	return results, rows.Err()
+}
+
+// emptyIfNil returns an empty slice if the input is nil, so json.Marshal
+// produces "[]" instead of "null".
+func emptyIfNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 // ClearEnrichment removes an enrichment and its associated structured data.

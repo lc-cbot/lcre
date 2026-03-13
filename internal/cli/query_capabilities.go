@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -60,8 +59,7 @@ func runQueryCapabilities(cmd *cobra.Command, args []string) error {
 
 	switch outputFormat {
 	case "json":
-		data, _ := json.MarshalIndent(caps, "", "  ")
-		fmt.Println(string(data))
+		outputJSON(caps)
 		return nil
 	default:
 		fmt.Fprintf(os.Stdout, "# Capabilities (%d)\n\n", len(caps))

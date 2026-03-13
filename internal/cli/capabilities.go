@@ -160,7 +160,7 @@ func printCapabilitiesMarkdown(c *CapabilitiesOutput) {
 
 func buildCapabilitiesOutput() *CapabilitiesOutput {
 	return &CapabilitiesOutput{
-		Version:     "1.0.0",
+		Version:     Version,
 		Tool:        "lcre",
 		Description: "Binary Forensics CLI for static analysis, malware investigation, and reverse engineering automation",
 		GlobalFlags: extractGlobalFlags(rootCmd),
