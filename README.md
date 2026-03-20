@@ -1,6 +1,6 @@
 # LCRE - Binary Forensics CLI Tool
 
-LCRE is a CLI tool for static binary analysis and forensics automation. It provides fast triage via native Go parsing and deep analysis via Ghidra headless integration.
+LCRE is a CLI tool for static binary analysis and forensics automation. It provides fast triage via native Go parsing, deep analysis via Ghidra headless integration, and enrichment from external analysis tools (capa, diec, floss, etc.).
 The goal of this CLI is not to implement new capabilities itself, but to stand on the shoulders of giants and unify the capabilities under a single CLI that LLMs can easily use.
 
 ## Features
@@ -11,6 +11,7 @@ The goal of this CLI is not to implement new capabilities itself, but to stand o
 - **IOC Extraction**: Extract URLs, IPs, domains, paths, and registry keys
 - **Binary Diff**: Compare two binaries to identify changes
 - **Ghidra Integration**: Deep analysis with decompilation and call graph extraction
+- **External Tool Enrichment**: Import and query results from capa (capabilities + ATT&CK), diec (packer/compiler detection), floss (obfuscated strings), and any other tool
 - **Multiple Output Formats**: JSON and Markdown
 - **AI-Ready**: Machine-readable capabilities for AI assistant integration
 
@@ -42,6 +43,7 @@ docker run --rm -v $(pwd):/work lcre analyze /work/sample.exe
 ```
 lcre analyze <binary>            # Fast one-shot analysis
 lcre query <subcommand> <binary> # Cached interactive queries
+lcre enrich <binary> --tool <t> --input <f>  # Import external tool output
 lcre diff <binary_a> <binary_b>  # Compare two binaries
 lcre cache <subcommand>          # Manage analysis cache
 lcre capabilities                # Machine-readable command schema
@@ -143,6 +145,32 @@ lcre query call-path /bin/ls main printf
 lcre query decompile /bin/ls main
 ```
 
+### Enrichment (External Tool Import)
+
+Import output from external analysis tools into LCRE's cache. Tools with dedicated parsers (capa, diec, floss) extract structured data; all other tools have their raw output stored as-is.
+
+```bash
+# Import capa capabilities (ATT&CK + MBC mappings)
+lcre enrich sample.exe --tool capa --input capa_output.json
+
+# Import diec packer/compiler detections
+lcre enrich sample.exe --tool diec --input diec_output.json
+
+# Import floss obfuscated/decoded strings
+lcre enrich sample.exe --tool floss --input floss_output.json
+
+# Import any other tool output (stored as raw)
+lcre enrich sample.exe --tool peframe --input peframe_output.json
+
+# Query enriched data
+lcre query capabilities sample.exe                    # Behavioral capabilities
+lcre query capabilities sample.exe --namespace anti   # Filter by namespace
+lcre query packer sample.exe                           # Packer/compiler detections
+lcre query packer sample.exe --type packer             # Filter by detection type
+lcre query enrichments sample.exe                      # List all imported enrichments
+lcre query enrichment sample.exe capa                  # View raw tool output
+```
+
 ### Cache Management
 
 ```bash
@@ -225,6 +253,7 @@ Community YARA rules:
 
 - **YARA**: For signature-based malware detection (`apt install yara` or `brew install yara`)
 - **Ghidra**: For function extraction and decompilation
+- **p7zip**: For extracting AES-256 encrypted archives (`apt install p7zip-full` or `brew install p7zip`)
 
 ## License
 
